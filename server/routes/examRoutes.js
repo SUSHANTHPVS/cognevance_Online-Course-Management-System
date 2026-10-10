@@ -22,6 +22,35 @@ const runShellCommand = (command, options = {}, input = "") =>
     }
   });
 
+// Run a command inside an ephemeral container without mounting host dirs.
+// Steps: docker create -> docker cp (copy tempDir contents) -> docker exec -> docker rm
+const runInEphemeralContainer = async (image, tempDir, innerCmd, programInput = "") => {
+  // Create container (sleep to keep it alive briefly)
+  const createCmd = `docker create --user 10001:10001 --network none --pids-limit=64 --memory=256m --cpus=0.5 ${image} bash -lc "sleep 300"`;
+  const createResult = await runShellCommand(createCmd);
+  if (createResult.error || !createResult.stdout) {
+    return { error: createResult.error || new Error('Failed to create container'), stdout: createResult.stdout, stderr: createResult.stderr };
+  }
+
+  const containerId = createResult.stdout.trim();
+  try {
+    // Copy code into container
+    const cpCmd = `docker cp ${tempDir}/. ${containerId}:/workspace`;
+    const cpRes = await runShellCommand(cpCmd);
+    if (cpRes.error) {
+      return { error: cpRes.error, stdout: cpRes.stdout, stderr: cpRes.stderr };
+    }
+
+    // Execute the command inside the container; pass programInput via stdin
+    const execCmd = `docker exec -i --user 10001:10001 ${containerId} bash -lc ${JSON.stringify(innerCmd)}`;
+    const execRes = await runShellCommand(execCmd, { timeout: 10000, maxBuffer: 10 * 1024 * 1024 }, programInput);
+    return execRes;
+  } finally {
+    // Ensure container is removed
+    await runShellCommand(`docker rm -f ${containerId}`);
+  }
+};
+
 const languageConfig = {
   Java: {
     fileName: "Main.java",
@@ -226,10 +255,10 @@ router.get("/:id/questions", authenticateToken, async (req, res) => {
   }
 });
 
-// COMPILE CODE
+// COMPILE/RUN CODE — uses ephemeral Docker containers for sandboxed execution when available
 router.post("/compile", authenticateToken, async (req, res) => {
   try {
-    const { language, code, input = "" } = req.body;
+    const { language, code, input = "", runOnly = false } = req.body;
     if (!language || !code) {
       return res.status(400).json({ message: "Language and code are required" });
     }
@@ -242,9 +271,59 @@ router.post("/compile", authenticateToken, async (req, res) => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "edup-"));
     const filePath = path.join(tempDir, config.fileName);
     await fs.writeFile(filePath, code);
+    // Make the temp dir and file writable by the executor user inside the container
+    try {
+      await fs.chmod(tempDir, 0o777);
+      await fs.chmod(filePath, 0o666);
+    } catch (e) {
+      // ignore chmod errors
+    }
+
+    // Decide whether to use Docker-based execution. Set USE_DOCKER_EXECUTOR=false to disable.
+    const useDocker = process.env.USE_DOCKER_EXECUTOR !== "false";
+    const dockerImage = process.env.EXECUTOR_IMAGE || "eduportal-executor:latest";
+
+    // dockerRunCmd removed in favor of runInEphemeralContainer which copies files into a short-lived container
 
     let compileOutput = "";
-    if (config.compile) {
+
+    if (useDocker) {
+      // Compile step (if any)
+      if (config.compile && !runOnly) {
+        const compileResult = await runInEphemeralContainer(dockerImage, tempDir, config.compile);
+        if (compileResult.error) {
+          await cleanupTempDir(tempDir);
+          return res.json({
+            success: false,
+            compileOutput: compileResult.stderr || compileResult.stdout || compileResult.error.message,
+            runtimeOutput: "",
+          });
+        }
+        compileOutput = compileResult.stderr || compileResult.stdout || "Compiled successfully";
+      }
+
+      // Run inside container (pass program input to the exec command)
+      const runResult = await runInEphemeralContainer(dockerImage, tempDir, config.run, input);
+
+      await cleanupTempDir(tempDir);
+
+      if (runResult.error) {
+        return res.json({
+          success: false,
+          compileOutput,
+          runtimeOutput: runResult.stderr || runResult.stdout || runResult.error.message,
+        });
+      }
+
+      return res.json({
+        success: true,
+        compileOutput,
+        runtimeOutput: runResult.stdout || "",
+      });
+    }
+
+    // Fallback: local execution (original behavior)
+    if (config.compile && !runOnly) {
       const compileResult = await runShellCommand(config.compile, {
         cwd: tempDir,
         timeout: 10000,

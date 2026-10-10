@@ -7,6 +7,9 @@
     "build:client": "cd client && npm run build",
     "start:server": "cd server && npm start",
     "start": "cd server && npm start",
-    "build": "cd client && npm run build"
+    "build": "cd client && npm run build",
+    "docker:build": "docker compose build --no-cache",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down"
   }
 }

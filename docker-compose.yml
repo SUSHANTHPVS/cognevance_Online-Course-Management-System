@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./server:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=5000
+      - JWT_SECRET=secret
+      - USE_DOCKER_EXECUTOR=true
+      - EXECUTOR_IMAGE=eduportal-executor:latest
+    restart: unless-stopped
+
+  executor:
+    build:
+      context: ./server/executor
+      dockerfile: Dockerfile
+    image: eduportal-executor:latest
+    # executor runs only when invoked; no ports exposed
+    restart: "no"

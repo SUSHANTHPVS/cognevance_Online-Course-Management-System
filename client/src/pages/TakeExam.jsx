@@ -263,11 +263,11 @@ const TakeExam = () => {
                           </div>
                           <div className="rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-700 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-200">
                             <div className="mb-2 font-semibold">Compile Output</div>
-                            <pre className="whitespace-pre-wrap break-words">{compileOutputs[question._id].compileOutput || 'No compile output.'}</pre>
+                            <pre className="whitespace-pre-wrap ">{compileOutputs[question._id].compileOutput || 'No compile output.'}</pre>
                           </div>
                           <div className="rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-700 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-200">
                             <div className="mb-2 font-semibold">Runtime Output</div>
-                            <pre className="whitespace-pre-wrap break-words">{compileOutputs[question._id].runtimeOutput || 'No runtime output.'}</pre>
+                            <pre className="whitespace-pre-wrap ">{compileOutputs[question._id].runtimeOutput || 'No runtime output.'}</pre>
                           </div>
                         </div>
                       )}
