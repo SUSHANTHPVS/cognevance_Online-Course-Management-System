@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
+const fs = require("fs");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const authRoutes = require("./routes/authRoutes");
@@ -29,11 +30,13 @@ app.use("/api/leaderboard", leaderboardRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/chatbot", chatbotRoutes);
 
-if (process.env.NODE_ENV === 'production') {
-  const clientDistPath = path.join(__dirname, '../client/dist');
+const clientDistPath = path.join(__dirname, "../client/dist");
+const clientIndexPath = path.join(clientDistPath, "index.html");
+
+if (process.env.NODE_ENV === "production" && fs.existsSync(clientIndexPath)) {
   app.use(express.static(clientDistPath));
   app.get('*', (req, res) => {
-    res.sendFile(path.join(clientDistPath, 'index.html'));
+    res.sendFile(clientIndexPath);
   });
 }
 
