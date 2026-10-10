@@ -6,7 +6,8 @@ A full-stack learning portal with course enrollment and progress tracking, exams
 
 - Source code: [GitHub repository](https://github.com/SUSHANTHPVS/cognevance_Online-Course-Management-System)
 - Backend: [Render API](https://cognevance-online-course-management-qgtp.onrender.com)
-- Frontend: deployed on Vercel; add the project's public Vercel URL here (it is not recorded in this repository).
+- Frontend: [Vercel deployment](https://cognevance-online-course-management-nine.vercel.app/)
+- Plain-text deployment links: [DEPLOYMENT_LINKS.txt](DEPLOYMENT_LINKS.txt)
 - Screenshots/demo: add screenshots or a demo recording under `docs/screenshots/` and link them here. The screenshot shared during development shows a broken course image and is not a suitable project demo.
 - REST API reference: [docs/API.md](docs/API.md)
 

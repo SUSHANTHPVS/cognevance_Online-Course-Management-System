@@ -1,0 +1,5 @@
+Cognevance Online Course Management System - Project Links
+
+Frontend (Vercel): https://cognevance-online-course-management-nine.vercel.app/
+Backend (Render): https://cognevance-online-course-management-qgtp.onrender.com
+Source code (GitHub): https://github.com/SUSHANTHPVS/cognevance_Online-Course-Management-System
