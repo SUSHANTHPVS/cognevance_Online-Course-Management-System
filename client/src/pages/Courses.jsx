@@ -4,6 +4,24 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
+const fallbackCourseImage = 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80';
+
+const getCourseThumbnail = (thumbnail) => {
+  if (!thumbnail) return fallbackCourseImage;
+
+  try {
+    const imageUrl = new URL(thumbnail);
+    if (['localhost', '127.0.0.1'].includes(imageUrl.hostname) && axios.defaults.baseURL) {
+      const backendUrl = new URL(axios.defaults.baseURL);
+      imageUrl.protocol = backendUrl.protocol;
+      imageUrl.host = backendUrl.host;
+    }
+    return imageUrl.href;
+  } catch {
+    return fallbackCourseImage;
+  }
+};
+
 const Courses = () => {
   const { user } = useAuth();
   const [courses, setCourses] = useState([]);
@@ -140,13 +158,16 @@ const Courses = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCourses.map((course) => (
           <div key={course._id} className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-            {course.thumbnail && (
-              <img
-                src={course.thumbnail}
-                alt={course.title}
-                className="w-full h-48 object-cover"
-              />
-            )}
+            <img
+              src={getCourseThumbnail(course.thumbnail)}
+              alt={course.title}
+              className="w-full h-48 object-cover"
+              onError={(event) => {
+                if (event.currentTarget.src !== fallbackCourseImage) {
+                  event.currentTarget.src = fallbackCourseImage;
+                }
+              }}
+            />
             <div className="p-6">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                 {course.title}
